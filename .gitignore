@@ -1,2 +1,5 @@
-/out
-/kucc
+*~
+*.o
+tmp*
+a.out
+kucc
