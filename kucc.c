@@ -298,7 +298,7 @@ int main(int argc, char **argv)
 {
   if (argc != 2)
   {
-    error_at(token->str, "引数の個数が正しくありません");
+    error(token->str, "引数の個数が正しくありません");
     return 1;
   }
 
