@@ -10,6 +10,9 @@ cd kucc
 # 🐳 Build image.
 docker build -t kucc .
 
-# ✅ Run test.
+# 📖 Compile.
 docker run --rm -v $(pwd):/kucc -w /kucc kucc make
+
+# ✅ Run test.
+docker run --rm -v $(pwd):/kucc -w /kucc kucc make test
 ```
