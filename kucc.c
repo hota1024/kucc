@@ -135,15 +135,20 @@ bool at_eof()
 }
 
 // 新しいトークンを作成してcurに繋げる。
-Token *new_token(TokenKind kind, Token *cur, char *str)
+Token *new_token(TokenKind kind, Token *cur, char *str, int len)
 {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->str = str;
+  tok->len = len;
 
   cur->next = tok;
 
   return tok;
+}
+
+bool startswith(char *p, char *q) {
+  return memcmp(p, q, strlen(q)) == 0;
 }
 
 // 入力文字列pをトークナイズしてそれを返す。
@@ -164,41 +169,31 @@ Token *tokenize(char *p)
     }
 
     if (
-      !strncmp(p, "==", 2) ||
-      !strncmp(p, "!=", 2) ||
-      !strncmp(p, "<=", 2) ||
-      !strncmp(p, ">=", 2)
+      startswith(p, "==") ||
+      startswith(p, "!=") ||
+      startswith(p, "<=") ||
+      startswith(p, ">=")
     )
     {
-      cur = new_token(TK_RESERVED, cur, p);
-      strncpy(cur->str, p, 2);
-      cur->len = 2;
+      cur = new_token(TK_RESERVED, cur, p, 2);
       p += 2;
 
       continue;
     }
 
-    if (
-      *p == '+' ||
-      *p == '-' ||
-      *p == '*' ||
-      *p == '/' ||
-      *p == '(' ||
-      *p == ')' ||
-      *p == '<' ||
-      *p == '>'
-    )
+    if (strchr("+-*/()<>", *p))
     {
-      cur = new_token(TK_RESERVED, cur, p++);
-      cur->len = 1;
+      cur = new_token(TK_RESERVED, cur, p++, 1);
 
       continue;
     }
 
     if (isdigit(*p))
     {
-      cur = new_token(TK_NUM, cur, p);
+      cur = new_token(TK_NUM, cur, p, 0);
+      char *q = p;
       cur->val = strtol(p, &p, 10);
+      cur->len = p - q;
 
       continue;
     }
@@ -206,7 +201,7 @@ Token *tokenize(char *p)
     error_at(p, "トークナイズできません");
   }
 
-  new_token(TK_EOF, cur, p);
+  new_token(TK_EOF, cur, p, 0);
 
   return head.next;
 }
