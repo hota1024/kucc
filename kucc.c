@@ -34,6 +34,10 @@ typedef enum
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_EQ,  // ==
+  ND_NE,  // !=
+  ND_LT,  // <
+  ND_LE,  // <=
   ND_NUM, // 整数
 } NodeKind;
 
@@ -227,12 +231,72 @@ Node *new_node_num(int val)
   return node;
 }
 
+Node *expr();
+Node *equality();
+Node *relational();
+Node *add();
 Node *mul();
 Node *unary();
 Node *primary();
 
 // 式をパースする。
 Node *expr()
+{
+  return equality();
+}
+
+Node *equality()
+{
+  Node *node = relational();
+
+  for (;;)
+  {
+    if (consume("=="))
+    {
+      node = new_node(ND_EQ, node, relational());
+    }
+    else if (consume("!="))
+    {
+      node = new_node(ND_NE, node, relational());
+    }
+    else
+    {
+      return node;
+    }
+  }
+}
+
+Node *relational()
+{
+  Node *node = add();
+
+  for (;;)
+  {
+    if (consume("<"))
+    {
+      node = new_node(ND_LT, node, add());
+    }
+    else if (consume("<="))
+    {
+      node = new_node(ND_LE, node, add());
+    }
+    else if (consume(">"))
+    {
+      node = new_node(ND_LT, add(), node);
+    }
+    else if (consume(">="))
+    {
+      node = new_node(ND_LE, add(), node);
+    }
+    else
+    {
+      return node;
+    }
+  }
+}
+
+// 足し算と引き算をパースする
+Node *add()
 {
   Node *node = mul();
 
@@ -301,12 +365,10 @@ Node *primary()
 }
 
 // 抽象構文木を元にスタック操作命令を生成する。
-void gen(Node *node)
-{
+void gen(Node *node) {
   if (node->kind == ND_NUM)
   {
     printf("  push %d\n", node->val);
-
     return;
   }
 
@@ -333,6 +395,30 @@ void gen(Node *node)
     case ND_DIV:
       printf("  cqo\n");
       printf("  idiv rdi\n");
+      break;
+
+    case ND_EQ:
+      printf("  cmp rax, rdi\n");
+      printf("  sete al\n");
+      printf("  movzb rax, al\n");
+      break;
+
+    case ND_NE:
+      printf("  cmp rax, rdi\n");
+      printf("  setne al\n");
+      printf("  movzb rax, al\n");
+      break;
+
+    case ND_LT:
+      printf("  cmp rax, rdi\n");
+      printf("  setl al\n");
+      printf("  movzb rax, al\n");
+      break;
+
+    case ND_LE:
+      printf("  cmp rax, rdi\n");
+      printf("  setle al\n");
+      printf("  movzb rax, al\n");
       break;
   }
 
