@@ -21,6 +21,7 @@ struct Token
   Token *next;    // 次の入力トークン
   int val;        // 整数トークンの値
   char *str;      // トークン文字列
+  int len;        // トークンの長さ
 };
 
 // 現在着目しているトークン
@@ -80,9 +81,13 @@ void error(char *fmt, ...)
 
 // 次のトークンが期待している記号のときには、とーくんを1つよみ勧めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char op)
+bool consume(char *op)
 {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+  if (
+    token->kind != TK_RESERVED ||
+    strlen(op) != token->len ||
+    memcmp(token->str, op, token->len)
+  )
   {
     return false;
   }
@@ -94,9 +99,13 @@ bool consume(char op)
 
 // 次のトークンが期待している記号のときには、とーくんを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(char op)
+void expect(char *op)
 {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+  if (
+    token->kind != TK_RESERVED ||
+    strlen(op) != token->len ||
+    memcmp(token->str, op, token->len)
+  )
   {
     error_at(token->str, "'%c'ではありません", op);
   }
@@ -155,15 +164,33 @@ Token *tokenize(char *p)
     }
 
     if (
+      !strncmp(p, "==", 2) ||
+      !strncmp(p, "!=", 2) ||
+      !strncmp(p, "<=", 2) ||
+      !strncmp(p, ">=", 2)
+    )
+    {
+      cur = new_token(TK_RESERVED, cur, p);
+      strncpy(cur->str, p, 2);
+      cur->len = 2;
+      p += 2;
+
+      continue;
+    }
+
+    if (
       *p == '+' ||
       *p == '-' ||
       *p == '*' ||
       *p == '/' ||
       *p == '(' ||
-      *p == ')'
+      *p == ')' ||
+      *p == '<' ||
+      *p == '>'
     )
     {
       cur = new_token(TK_RESERVED, cur, p++);
+      cur->len = 1;
 
       continue;
     }
@@ -216,10 +243,10 @@ Node *expr()
 
   for (;;)
   {
-    if (consume('+'))
+    if (consume("+"))
     {
       node = new_node(ND_ADD, node, mul());
-    } else if (consume('-'))
+    } else if (consume("-"))
     {
       node = new_node(ND_SUB, node, mul());
     } else
@@ -236,10 +263,10 @@ Node *mul()
 
   for (;;)
   {
-    if (consume('*'))
+    if (consume("*"))
     {
       node = new_node(ND_MUL, node, unary());
-    } else if (consume('/'))
+    } else if (consume("/"))
     {
       node = new_node(ND_DIV, node, unary());
     } else
@@ -251,12 +278,12 @@ Node *mul()
 
 Node *unary()
 {
-  if (consume('+'))
+  if (consume("+"))
   {
     return primary();
   }
 
-  if (consume('-'))
+  if (consume("-"))
   {
     return new_node(ND_SUB, new_node_num(0), primary());
   }
@@ -267,10 +294,10 @@ Node *unary()
 // グループ化と整数をパースする。
 Node *primary()
 {
-  if (consume('('))
+  if (consume("("))
   {
     Node *node = expr();
-    expect(')');
+    expect(")");
 
     return node;
   }
