@@ -119,8 +119,7 @@ Token *tokenize(char *p)
 
     if ('a' <= *p && *p <= 'z')
     {
-      cur = new_token(TK_IDENT, cur, p++);
-      cur->len = 1;
+      cur = new_token(TK_IDENT, cur, p++, 1);
 
       continue;
     }
